@@ -1,0 +1,4 @@
+name = "MinORM"
+uuid = "21ac00f3-76d2-4e6d-971f-b3ec42fe48ad"
+authors = ["llib "]
+version = "0.1.0"
