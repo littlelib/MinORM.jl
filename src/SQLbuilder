@@ -1,0 +1,35 @@
+####Basic SQL statement builder
+
+
+const StmtObject=Tuple{String, Vector{Any}}
+
+function prepared_statement_builder()
+    parameters=[]
+
+    function getparameter(param)
+        push!(parameters, param)
+        return "?"
+    end
+
+    function buildstatement(statement)
+        return_stmt=(statement, parameters)|>deepcopy
+        parameters=[]
+        return return_stmt
+    end
+    
+    return (buildstatement, getparameter)
+end
+
+function concat(stmt1::StmtObject, stmt2::StmtObject)
+    return (join([stmt1[1], stmt2[1]], " "), [stmt1[2];stmt2[2]])
+end
+
+######################
+
+
+abstract type Schema{DBMS} end
+
+mutable struct Test{DBMS} <: Schema{DBMS}
+    x::Int
+    y::String
+end
