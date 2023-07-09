@@ -129,35 +129,11 @@ function select(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema, co
     return df
 end
 
-function select(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema, column::Symbol=:(*); where::StmtObject=Sql("true"))
-    schema_name=typeto_snakecase_name(schema)
-    stmt_object=where
-    stmt_string="select $(column) from $(schema_name) where $(stmt_object[1]);"
-    stmt=prepare(manager, stmt_string)
-    result=execute(stmt, stmt_object[2])
-    df=result|>DataFrame
-    result|>SQLite.DBInterface.close!
-    SQLite.DBInterface.close!(stmt)
-    return df
-end
-
-
 function select(manager::DBManager{:mysql}, schema::Type{T} where T<:Schema, columns::NTuple{N, Symbol} where N; where::StmtObject=Sql("true"))
     schema_name=typeto_snakecase_name(schema)
     columns=@pipe columns|>join(_, ", ")
     stmt_object=where
     stmt_string="select $(columns) from $(schema_name) where $(stmt_object[1]);"
-    stmt=prepare(manager, stmt_string)
-    result=execute(stmt, stmt_object[2])
-    df=result|>DataFrame
-    MySQL.DBInterface.close!(stmt)
-    return df
-end
-
-function select(manager::DBManager{:mysql}, schema::Type{T} where T<:Schema, column::Symbol=:(*); where::StmtObject=Sql("true"))
-    schema_name=typeto_snakecase_name(schema)
-    stmt_object=where
-    stmt_string="select $(column) from $(schema_name) where $(stmt_object[1]);"
     stmt=prepare(manager, stmt_string)
     result=execute(stmt, stmt_object[2])
     df=result|>DataFrame
@@ -177,6 +153,31 @@ function select(manager::DBManager{:postgresql}, schema::Type{T} where T<:Schema
     return df
 end
 
+
+
+function select(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema, column::Symbol=:(*); where::StmtObject=Sql("true"))
+    schema_name=typeto_snakecase_name(schema)
+    stmt_object=where
+    stmt_string="select $(column) from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    result=execute(stmt, stmt_object[2])
+    df=result|>DataFrame
+    result|>SQLite.DBInterface.close!
+    SQLite.DBInterface.close!(stmt)
+    return df
+end
+
+function select(manager::DBManager{:mysql}, schema::Type{T} where T<:Schema, column::Symbol=:(*); where::StmtObject=Sql("true"))
+    schema_name=typeto_snakecase_name(schema)
+    stmt_object=where
+    stmt_string="select $(column) from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    result=execute(stmt, stmt_object[2])
+    df=result|>DataFrame
+    MySQL.DBInterface.close!(stmt)
+    return df
+end
+
 function select(manager::DBManager{:postgresql}, schema::Type{T} where T<:Schema, column::Symbol=:(*); where::StmtObject=Sql("true"))
     schema_name=typeto_snakecase_name(schema)
     stmt_object=where|>renderto_postgresql
@@ -186,4 +187,178 @@ function select(manager::DBManager{:postgresql}, schema::Type{T} where T<:Schema
     df=result|>DataFrame
     result|>LibPQ.close
     return df
+end
+
+
+
+
+function delete(manager::DBManager{:sqlite}, instance::T where T<:Schema)
+    schema_name=typeto_snakecase_name(typeof(instance))
+    stmt_object=Sql("$(primary(instance))=$(P(getfield(instance, primary(instance))))")
+    stmt_string="delete from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    execute(stmt, stmt_object[2])|>SQLite.DBInterface.close!
+    SQLite.DBInterface.close!(stmt)
+end
+
+function delete(manager::DBManager{:mysql}, instance::T where T<:Schema)
+    schema_name=typeto_snakecase_name(typeof(instance))
+    stmt_object=Sql("$(primary(instance))=$(P(getfield(instance, primary(instance))))")
+    stmt_string="delete from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    execute(stmt, stmt_object[2])
+    MySQL.DBInterface.close!(stmt)
+end
+
+function delete(manager::DBManager{:postgresql}, instance::T where T<:Schema)
+    schema_name=typeto_snakecase_name(typeof(instance))
+    stmt_object=Sql("$(primary(instance))=$(P(getfield(instance, primary(instance))))")|>renderto_postgresql
+    stmt_string="delete from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    execute(stmt, stmt_object[2])|>LibPQ.close
+end
+
+
+
+function delete(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema; where::StmtObject=Sql("false"))
+    schema_name=typeto_snakecase_name(schema)
+    stmt_object=where
+    stmt_string="delete from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    execute(stmt, stmt_object[2])|>SQLite.DBInterface.close!
+    SQLite.DBInterface.close!(stmt)
+end
+
+function delete(manager::DBManager{:mysql}, schema::Type{T} where T<:Schema; where::StmtObject=Sql("false"))
+    schema_name=typeto_snakecase_name(schema)
+    stmt_object=where
+    stmt_string="delete from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    execute(stmt, stmt_object[2])
+    MySQL.DBInterface.close!(stmt)
+end
+
+function delete(manager::DBManager{:postgresql}, schema::Type{T} where T<:Schema; where::StmtObject=Sql("false"))
+    schema_name=typeto_snakecase_name(schema)
+    stmt_object=where|>renderto_postgresql
+    stmt_string="delete from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    execute(stmt, stmt_object[2])|>LibPQ.close
+end
+
+
+
+
+function update(manager::DBManager{:sqlite}, instance::T where T<:Schema; where::Union{StmtObject, Nothing}=nothing)
+    schema_name=typeto_snakecase_name(instance|>typeof)
+    stmt_where=where
+    if where==nothing
+        stmt_where=Sql("$(primary(instance))=$(P(getfield(instance, primary(instance))))")
+    end
+    stmt_set=@pipe fieldnames(instance|>typeof)|>
+    map(x->Sql("$(x)=$(P(getfield(instance, x)))"), _)|>collect|>
+    concat(_, ", ")
+    stmt_object=("update $(schema_name) set $(stmt_set[1]) where $(stmt_where[1]);", [stmt_set[2];stmt_where[2]])
+    stmt=prepare(manager, stmt_object[1])
+    execute(stmt, stmt_object[2])|>SQLite.DBInterface.close!
+    SQLite.DBInterface.close!(stmt)
+end
+
+function update(manager::DBManager{:mysql}, instance::T where T<:Schema; where::Union{StmtObject, Nothing}=nothing)
+    schema_name=typeto_snakecase_name(instance|>typeof)
+    stmt_where=where
+    if where==nothing
+        stmt_where=Sql("$(primary(instance))=$(P(getfield(instance, primary(instance))))")
+    end
+    stmt_set=@pipe fieldnames(instance|>typeof)|>
+    map(x->Sql("$(x)=$(P(getfield(instance, x)))"), _)|>collect|>
+    concat(_, ", ")
+    stmt_object=("update $(schema_name) set $(stmt_set[1]) where $(stmt_where[1]);", [stmt_set[2];stmt_where[2]])
+    stmt=prepare(manager, stmt_object[1])
+    execute(stmt, stmt_object[2])
+    MySQL.DBInterface.close!(stmt)
+end
+
+function update(manager::DBManager{:postgresql}, instance::T where T<:Schema; where::Union{StmtObject, Nothing}=nothing)
+    schema_name=typeto_snakecase_name(instance|>typeof)
+    stmt_where=where
+    if where==nothing
+        stmt_where=Sql("$(primary(instance))=$(P(getfield(instance, primary(instance))))")
+    end
+    stmt_set=@pipe fieldnames(instance|>typeof)|>
+    map(x->Sql("$(x)=$(P(getfield(instance, x)))"), _)|>collect|>
+    concat(_, ", ")
+    stmt_object=("update $(schema_name) set $(stmt_set[1]) where $(stmt_where[1]);", [stmt_set[2];stmt_where[2]])|>
+    renderto_postgresql
+    stmt=prepare(manager, stmt_object[1])
+    execute(stmt, stmt_object[2])|>LibPQ.close
+end
+
+
+
+
+
+function update(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema, sets::NTuple{N, Pair{Symbol, T}} where {N, T<:Any}; where::StmtObject)
+    schema_name=typeto_snakecase_name(schema)
+    stmt_where=where
+    stmt_set=@pipe sets|>map(x->Sql("$(x.first)=$(P(x.second))"), _)|>collect|>concat(_, ", ")
+    stmt_object=("update $(schema_name) set $(stmt_set[1]) where $(stmt_where[1]);" , [stmt_set[2];stmt_where[2]])
+    stmt=prepare(manager, stmt_object[1])
+    execute(stmt,stmt_object[2])|>SQLite.DBInterface.close!
+    SQLite.DBInterface.close!(stmt)
+end
+
+function update(manager::DBManager{:mysql}, schema::Type{T} where T<:Schema, sets::NTuple{N, Pair{Symbol, T}} where {N, T<:Any}; where::StmtObject)
+    schema_name=typeto_snakecase_name(schema)
+    stmt_where=where
+    stmt_set=@pipe sets|>map(x->Sql("$(x.first)=$(P(x.second))"), _)|>collect|>concat(_, ", ")
+    stmt_object=("update $(schema_name) set $(stmt_set[1]) where $(stmt_where[1]);" , [stmt_set[2];stmt_where[2]])
+    stmt=prepare(manager, stmt_object[1])
+    execute(stmt,stmt_object[2])
+    MySQL.DBInterface.close!(stmt)
+end
+
+function update(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema, sets::NTuple{N, Pair{Symbol, T}} where {N, T<:Any}; where::StmtObject)
+    schema_name=typeto_snakecase_name(schema)
+    stmt_where=where
+    stmt_set=@pipe sets|>map(x->Sql("$(x.first)=$(P(x.second))"), _)|>collect|>concat(_, ", ")
+    stmt_object=("update $(schema_name) set $(stmt_set[1]) where $(stmt_where[1]);" , [stmt_set[2];stmt_where[2]])|>renderto_postgresql
+    stmt=prepare(manager, stmt_object[1])
+    execute(stmt,stmt_object[2])|>LibPQ.close
+end
+
+
+
+
+
+
+
+
+function update(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema, sets::(Pair{Symbol, T} where T<:Any)...; where::StmtObject)
+    schema_name=typeto_snakecase_name(schema)
+    stmt_where=where
+    stmt_set=@pipe sets|>map(x->Sql("$(x.first)=$(P(x.second))"), _)|>collect|>concat(_, ", ")
+    stmt_object=("update $(schema_name) set $(stmt_set[1]) where $(stmt_where[1]);" , [stmt_set[2];stmt_where[2]])
+    stmt=prepare(manager, stmt_object[1])
+    execute(stmt,stmt_object[2])|>SQLite.DBInterface.close!
+    SQLite.DBInterface.close!(stmt)
+end
+
+function update(manager::DBManager{:mysql}, schema::Type{T} where T<:Schema, sets::(Pair{Symbol, T} where T<:Any)...; where::StmtObject)
+    schema_name=typeto_snakecase_name(schema)
+    stmt_where=where
+    stmt_set=@pipe sets|>map(x->Sql("$(x.first)=$(P(x.second))"), _)|>collect|>concat(_, ", ")
+    stmt_object=("update $(schema_name) set $(stmt_set[1]) where $(stmt_where[1]);" , [stmt_set[2];stmt_where[2]])
+    stmt=prepare(manager, stmt_object[1])
+    execute(stmt,stmt_object[2])
+    MySQL.DBInterface.close!(stmt)
+end
+
+function update(manager::DBManager{:postgresql}, schema::Type{T} where T<:Schema, sets::(Pair{Symbol, T} where T<:Any)...; where::StmtObject)
+    schema_name=typeto_snakecase_name(schema)
+    stmt_where=where
+    stmt_set=@pipe sets|>map(x->Sql("$(x.first)=$(P(x.second))"), _)|>collect|>concat(_, ", ")
+    stmt_object=("update $(schema_name) set $(stmt_set[1]) where $(stmt_where[1]);" , [stmt_set[2];stmt_where[2]])|>renderto_postgresql
+    stmt=prepare(manager, stmt_object[1])
+    execute(stmt,stmt_object[2])|>LibPQ.close
 end
