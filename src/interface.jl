@@ -4,7 +4,6 @@ using Pipe
 include("./Interface_SQLite.jl")
 include("./Interface_MySQL.jl")
 include("./Interface_PostgreSQL.jl")
-include("./Types.jl")
 include("./Objects.jl")
 include("./Kernel_functions.jl")
 include("./SQLbuilder.jl")
@@ -70,7 +69,7 @@ function drop(manager::DBManager{:mysql}, schema::Type{T} where T<:Schema)
     execute(manager, sql)|>MySQL.DBInterface.close!
 end
 
-function drop(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema)
+function drop(manager::DBManager{:postgresql}, schema::Type{T} where T<:Schema)
     sql="drop table if exists $(typeto_snakecase_name(schema));"
     execute(manager, sql)|>LibPQ.close
 end
@@ -318,7 +317,7 @@ function update(manager::DBManager{:mysql}, schema::Type{T} where T<:Schema, set
     MySQL.DBInterface.close!(stmt)
 end
 
-function update(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema, sets::NTuple{N, Pair{Symbol, T}} where {N, T<:Any}; where::StmtObject)
+function update(manager::DBManager{:postgresql}, schema::Type{T} where T<:Schema, sets::NTuple{N, Pair{Symbol, T}} where {N, T<:Any}; where::StmtObject)
     schema_name=typeto_snakecase_name(schema)
     stmt_where=where
     stmt_set=@pipe sets|>map(x->Sql("$(x.first)=$(P(x.second))"), _)|>collect|>concat(_, ", ")
