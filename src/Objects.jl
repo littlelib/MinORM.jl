@@ -17,7 +17,7 @@ Every table MUST contain a primary key, otherwise it will get a stackoverflow er
 """
 primary(x::T where T<:Schema)=primary(typeof(x))
 primary(x)=throw("function 'primary' is not defined for this type.")
-autoincrement(x)=autoincrement(typeof(x))
+autoincrement(x::T where T<:Schema)=autoincrement(typeof(x))
 autoincrement(x)=false
 """
 @kwdef mutable struct Test <: Schema
