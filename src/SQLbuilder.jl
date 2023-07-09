@@ -1,7 +1,4 @@
 ####Basic SQL statement builder
-using Pipe
-import Base
-
 const StmtObject=Tuple{String, Vector{Any}}
 
 mutable struct InfiniteRange

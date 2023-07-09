@@ -1,6 +1,3 @@
-using DataFrames
-using Pipe
-
 include("./Interface_SQLite.jl")
 include("./Interface_MySQL.jl")
 include("./Interface_PostgreSQL.jl")
@@ -16,13 +13,24 @@ DBManager{:sqlite}()=DBManager{:sqlite}(connectfromenv_sqlite())
 DBManager{:mysql}()=DBManager{:mysql}(connectfromenv_mysql())
 DBManager{:postgresql}()=DBManager{:postgresql}(connectfromenv_postgresql())
 
+setup()=begin
+    cfg=DotEnv.config()
+    if cfg["DBMS"]=="sqlite"
+        return DBManager{:sqlite}()
+    elseif cfg["DBMS"]=="mysql" || cfg["DBMS"]=="mariadb"
+        return DBManager{:mysql}()
+    elseif cfg["DBMS"]=="postgresql"
+        return DBManager{:postgresql}
+    end
+end
+
 close!(manager::DBManager{:sqlite})=SQLite.DBInterface.close!(manager.connection)
 close!(manager::DBManager{:mysql})=MySQL.DBInterface.close!(manager.connection)
 close!(manager::DBManager{:postgresql})=close(manager.connection)
 
-reconnect!(manager::DBManager{:sqlite})=(close!(manager);DBManager.connection=connectfromenv_sqlite())
-reconnect!(manager::DBManager{:mysql})=(close!(manager);DBManager.connection=connectfromenv_mysql())
-reconnect!(manager::DBManager{:postgresql})=(close!(manager);DBManager.connection=connectfromenv_postgresql())
+reconnect!(manager::DBManager{:sqlite})=(close!(manager);manager.connection=connectfromenv_sqlite())
+reconnect!(manager::DBManager{:mysql})=(close!(manager);manager.connection=connectfromenv_mysql())
+reconnect!(manager::DBManager{:postgresql})=(close!(manager);manager.connection=connectfromenv_postgresql())
 
 prepare(manager::DBManager{:sqlite}, query_format::String)=SQLite.DBInterface.prepare(manager.connection, query_format)
 prepare(manager::DBManager{:mysql}, query_format::String)=MySQL.DBInterface.prepare(manager.connection, query_format)

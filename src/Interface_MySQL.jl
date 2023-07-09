@@ -1,6 +1,3 @@
-using MySQL, DBInterface, DotEnv, Pipe
-
-
 """.env file must include HOST, USER, PASSWD. Others are optional."""
 function connectfromenv_mysql()
     cfg=DotEnv.config().dict

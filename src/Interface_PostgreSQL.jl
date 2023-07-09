@@ -1,5 +1,3 @@
-using LibPQ, DBInterface, DotEnv,Pipe
-
 function connectfromenv_postgresql()
     cfg=DotEnv.config().dict
     delete!(cfg, "DBMS")
@@ -16,14 +14,3 @@ function connectfromenv_postgresql()
     join(_, " ")
     LibPQ.Connection(connection_options_string)
 end
-
-"""
-DBInterface.connect(::Type{LibPQ.Connection}, args...; kws...) =
-    LibPQ.Connection(args...; kws...)
-
-DBInterface.prepare(conn::LibPQ.Connection, args...; kws...) =
-    LibPQ.prepare(conn, args...; kws...)
-
-DBInterface.execute(conn::Union{LibPQ.Connection, LibPQ.Statement}, args...; kws...) =
-    LibPQ.execute(conn, args...; kws...)
-    """

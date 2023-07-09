@@ -1,6 +1,4 @@
-using Pipe
 include("./Types.jl")
-import Base
 
 abstract type Schema end
 
@@ -20,7 +18,8 @@ Every table MUST contain a primary key, otherwise it will get a stackoverflow er
 primary(x::T where T<:Schema)=primary(typeof(x))
 primary(x)=throw("function 'primary' is not defined for this type.")
 autoincrement(x)=autoincrement(typeof(x))
-
+autoincrement(x)=false
+"""
 @kwdef mutable struct Test <: Schema
     x::Union{Int, Missing}=missing
     y::Union{String, Missing}="Default value"
@@ -35,7 +34,7 @@ autoincrement(::Type{Test})=true
 end
 primary(::Type{Test_2})=:x
 autoincrement(::Type{Test_2})=true
-
+"""
 
 """generate most of the tabledata here, since only types common to most DBMSs are used.
 However, there are differences in how DBMSs define attributes(such as autoincrement), so they will be generated after the DBMS to use is decided."""
