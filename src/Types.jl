@@ -1,4 +1,4 @@
-using Match, Dates
+using Dates
 import Base
 
 mutable struct String_{N}
@@ -16,17 +16,27 @@ Base.convert(::Type{String_{N}}, x::String) where N=String_{N}(x)
 Base.convert(::Type{String}, x::String_)=x.body
 Base.length(x::String_)=length(x.body)
 limit(x::Type{String_{N}}) where N=N
+limit(X::Type{Union{String_{N}, T}}) where {T<:Union{Missing, Nothing},N}=N
+
 
 function convertinto_sqltype(x)  
-    @match x begin
-        t::Type{Float64}=>"papasdf"
-        t::Type{Float32}=>"decimal"
-        t::Type{Int64}=>"int"
-        t::Type{Int32}=>"int"
-        t::Type{String}=>"text"
-        t::Type{Dates.DateTime}=>"datetime"
-        t::Type{String_{0}}=>"text"
-        t::Type{<:String_}=>"varchar($(limit(t)))"
-        _=>println("Unsupported type")
+    if Float64<:x
+        "decimal"
+    elseif Float32<:x
+        "decimal"
+    elseif Int64<:x
+        "integer"
+    elseif Int32<:x
+        "integer" 
+    elseif DateTime<:x
+        "datetime"
+    elseif String<:x
+        "text"
+    elseif String_{limit(x)}<:x
+        "varchar($(limit(x)))"
+    elseif isa(x, Union{Missing, nothing})
+        "null"
+    else
+        println("Unsupported type")
     end
 end
