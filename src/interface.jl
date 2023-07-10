@@ -162,6 +162,50 @@ end
 
 
 
+
+function select(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema, columns::Symbol...; where::StmtObject=Sql("true"))
+    schema_name=typeto_snakecase_name(schema)
+    columns=@pipe columns|>join(_, ", ")
+    stmt_object=where
+    stmt_string="select $(columns) from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    result=execute(stmt, stmt_object[2])
+    df=result|>DataFrame
+    result|>SQLite.DBInterface.close!
+    SQLite.DBInterface.close!(stmt)
+    return df
+end
+
+function select(manager::DBManager{:mysql}, schema::Type{T} where T<:Schema, columns::Symbol...; where::StmtObject=Sql("true"))
+    schema_name=typeto_snakecase_name(schema)
+    columns=@pipe columns|>join(_, ", ")
+    stmt_object=where
+    stmt_string="select $(columns) from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    result=execute(stmt, stmt_object[2])
+    df=result|>DataFrame
+    MySQL.DBInterface.close!(stmt)
+    return df
+end
+
+function select(manager::DBManager{:postgresql}, schema::Type{T} where T<:Schema, columns::Symbol...; where::StmtObject=Sql("true"))
+    schema_name=typeto_snakecase_name(schema)
+    columns=@pipe columns|>join(_, ", ")
+    stmt_object=where|>renderto_postgresql
+    stmt_string="select $(columns) from $(schema_name) where $(stmt_object[1]);"
+    stmt=prepare(manager, stmt_string)
+    result=execute(stmt, stmt_object[2])
+    df=result|>DataFrame
+    result|>LibPQ.close
+    return df
+end
+
+
+
+
+
+
+
 function select(manager::DBManager{:sqlite}, schema::Type{T} where T<:Schema, column::Symbol=:(*); where::StmtObject=Sql("true"))
     schema_name=typeto_snakecase_name(schema)
     stmt_object=where

@@ -5,7 +5,7 @@
 Disclaimer
 </p>  
 
-This package is not meant to be an actual, well-working ORM. It has very few functionalities, its queries & execution not well tuned, and its design just crude. **Its sole purpose is to dynamically create parameterized SQL queries for frequently used patterns, so that SQL injection can be prevented,** and nothing more. For general usage, Searchlight.jl would be a far better option.
+This package is not meant to be an actual, well-working ORM. It has very few functionalities, its queries & execution not well tuned, and its design just crude. **Its sole purpose is to dynamically create parameterized SQL queries for frequently used patterns, so that SQL injection can be prevented,** and nothing more. For general usage, Searchlight.jl or Wasabi.jl would be a far better option.
 However, if you're fine with minimal ORM functionality and mediocre performance, it may not be so bad.
 
 <br><br>
@@ -153,8 +153,8 @@ MinORM comes with boilerplate instructions for basic SQL patterens. Before we go
     favorite_movie::Union{Missing, String_{20}}="John Wick"
 end
 
-primary(::Test)=:id
-autoincrement(::Test)=true
+primary(::Type{Test})=:id
+autoincrement(::Type{Test})=true
 
 manager=setup()
 ```
@@ -171,17 +171,40 @@ manager=setup()
   Drop table if it exists.
 - insert
   ```julia
-  a=Test(name="Winston")
-  b=Test(id=31, name="Marcus")
+  a=Test(name="Winston") # Test(missing, "Winston", missing, "John Wick")
+  b=Test(id=31, name="Marcus") # Test(31, "Marcus", missing, "John Wick")
   insert(manager, a) # id will be autoincremented.
   insert(manager, b) # id will use the defined value.
   ```
   You can insert into a table by putting the instance of table as an argument. Note that if you want to use the autoincremented value, you leave the primary key's field value as 'missing'.
 - select
   ```julia
-  select
+  # Equivalent of "select * from test where true;".
+  select(manager, Test) 
+  # Equivalent of "select id, name, phone_number from test where true;". Field names should be of type Symbol.
+  select(manager, Test, :id, :name, :phone_number) 
+  # You can also put field names inside a tuple.
+  select(manager, Test, (:id, :name, :phone_number)) 
+  # You can optionally provide keyword "where" of type StmtStatement.
+  select(manager, Test, :id, :name, :phone_number, where=Sql("id=1")) 
   ```
+  Select returns DataFrames.DataFrame object. Keyword "where" has to be of type StmtObject.
 - delete
+  ```julia
+  # When deleting with instance, it's actually using the instance's primary key value, so you must specify it.
+  delete(manager, Test(1, "Winston", missing, "John Wick")) 
+  # 'where' keyword should be specified, otherwise it will do nothing.
+  delete(manager, Test, where=Sql("id=1"))
+  ```
+  You can either use the table instance with its primary key's value specified(not of value 'missing'), or use the table type itself and provide keyword 'where'.
 - update
+  ```julia
+  # Update using a table instance. It uses primary key's value to decide which row to update, so it must be set properly. Keep it mind that this method can't change the primary key itself.
+  update(manager, Test(31, "Marcus", "999-9999-9999", "Spiderman"))
+  # Use "Pair{Symbol, T} where T" to update columns, and use keyword 'where' to decide which row(or rows) to update. You can also change the primary key.
+  update(manager, Test, :id=>2, :name=>"Norman", where=Sql("name='Marcus'"))
+  # You can also put pairs inside a tuple.
+  update(manager, Test, (:id=>2, :name=>"Norman"), where=Sql("name='Marcus'"))
+  ```
 
 
