@@ -1,6 +1,6 @@
 module MinORM
 
-using DataFrames, DotEnv, Pipe, SQLite, MySQL, LibPQ, Dates
+using DataFrames, DotEnv, Pipe, SQLite, MySQL, LibPQ, Dates, StmtObject, concat
 import Base
 
 

@@ -32,7 +32,7 @@ function concat(stmt1::StmtObject, stmt2::StmtObject, delimeter::String=" ")
 end
 
 
-function concat(x::Vector{StmtObject}, delimeter::String=" ")
+function concat(x::Vector{T} where T<:StmtObject, delimeter::String=" ")
     if length(x)==0
         return StmtObject[]
     elseif length(x)==1
