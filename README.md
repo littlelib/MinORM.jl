@@ -100,6 +100,11 @@ String_{N} is a custom type, representing a string with limited capacity of N. I
 
 An example struct can be constructed like this:
 ```julia
+using MinORM
+import MinORM
+
+manager=setup()
+
 @kwdef mutable struct Test <: Schema
     id::Union{Missing, Int64}=missing
     name::String_{10}
@@ -107,9 +112,9 @@ An example struct can be constructed like this:
     favorite_movie::Union{Missing, String_{20}}="John Wick"
 end
 # Must be defined. It must be of type 'Symbol'.
-primary(::Test)=:id
+MinORM.primary(::Type{Test})=:id
 # Optional. Default is set to false. Must be an Int type for it to work, although no error message will be provided if not.
-autoincrement(::Test)=true
+MinORM.autoincrement(::Type{Test})=true
 ```
 SQL tables allow having these attributes:
 - primary key
