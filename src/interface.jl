@@ -20,7 +20,7 @@ setup()=begin
     elseif cfg["DBMS"]=="mysql" || cfg["DBMS"]=="mariadb"
         return DBManager{:mysql}()
     elseif cfg["DBMS"]=="postgresql"
-        return DBManager{:postgresql}
+        return DBManager{:postgresql}()
     end
 end
 
