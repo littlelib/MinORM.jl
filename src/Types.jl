@@ -12,6 +12,7 @@ end
 Base.convert(::Type{String_{N}}, x::String) where N=String_{N}(x)
 Base.convert(::Type{String}, x::String_)=x.body
 Base.length(x::String_)=length(x.body)
+Base.ncodeunits(x::String_)=ncodeunits(x.body)
 Base.iterate(string_::String_{N}, state::Integer=1) where N=state>length(string_) ? nothing : (string_.body[state], state+1)
 limit(x::Type{String_{N}}) where N=N
 limit(X::Type{Union{String_{N}, T}}) where {T<:Union{Missing, Nothing},N}=N
