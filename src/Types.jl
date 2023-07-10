@@ -1,4 +1,4 @@
-mutable struct String_{N}
+mutable struct String_{N} <: AbstractString
     body::String
     String_{N}(x::String) where N=begin
         if length(x)>N
