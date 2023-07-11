@@ -136,7 +136,7 @@ You can create a StatementObject using this syntax.
 ```julia
 Sql("select id, name from Test where id=$(P(32)));") 
 ```
-The function 'P' is a closure that encapsulates the variable it receives and returns "?". The function Sql, which is also a closure, takes the created string and the encapsulated variables, and returns a StatementObject with both the parameterized SQL statement and the vector of encapsulated variables.  
+The function 'P'(Parameters) is a closure that encapsulates the variable it receives and returns "?". The function Sql, which is also a closure, takes the created string and the encapsulated variables, and returns a StatementObject with both the parameterized SQL statement and the vector of encapsulated variables.  
 You can also concatenate multiple StatementObjects using 'concat' function.
 ```julia
 a=Sql("ID=$(P(20230710))")
@@ -148,16 +148,14 @@ multiple_statementobjects=[a,b,Sql("FAVORITE_FRUIT=$(P("Kiwi"))")]
 julia> concat(multiple_statementobjects, " AND ")
 MinORM.StatementObject("ID=? AND NAME=? AND FAVORITE_FRUIT=?", Any[20230710, "John", "Kiwi"])
 ```
-You can nest a StatementObject inside a StatementObject using 'N' function. It helps create complex queries.
+You can nest a StatementObject inside a StatementObject using 'N'(Nest) function. It helps create complex queries.
 ```julia
 a=Sql("ID=$(P(20230710))")
 b=Sql("NAME=$(P("John"))")
 julia> Sql("update TEST set $(N(b)) where $(N(a));")
 MinORM.StatementObject("update TEST set NAME=? where ID=?;", Any["John", 20230710])
 ```
-By concatenating and nesting StateObjects, you can create any parameterized query you want! This is also how every boilerplate functions are created.
-
-Keep in mind, though, that globally defined functions Sql, P, and N are just closures derived from a single instance of 'statementbuilder' function-that is, they all share the same environment. This can be problematic if you plan on using these closures in asynchronous functions. So in such cases, you have to manually define closures Sql, P, and N for your individual async scope, like this:
+By concatenating and nesting StateObjects, you can create any parameterized query you want! This is also how every boilerplate functions are created. Keep in mind, though, that globally defined functions Sql, P, and N are just closures derived from a single instance of 'statementbuilder' function-that is, they all share the same environment. This can be problematic if you plan on using these closures in asynchronous functions. So in such cases, you have to manually define closures Sql, P, and N for your individual async scope, like this:
 ```julia
 function test()
 (Sql, P, N)=statementbuilder();
@@ -167,6 +165,13 @@ end
 @async test()
 ```
 Boilerplate functions already have closures for their own environment, so are safe to use asynchronously-least for building queries.
+
+
+Most of the time, you'd be using StatementObjects inside of a boilerplate function, to create only a portion of the required query. However, you can also create the whole query without boilerplate function, and directly execute the generated StatementObject, if that's what you want. Use 'execute' function if you don't want the result, and if you want the result as DataFrames.DataFrame type, you can use 'execute_withdf' function.
+```julia
+execute(manager::DBManager, stmt::StatementObject)
+execute_withdf(manager::DBManager,)
+```
 
 ## 5. Boilerplate functions - create, drop, insert, select, delete, update
 MinORM comes with boilerplate instructions for basic SQL patterens. Before we go into details, first we'll set up the test environment.
