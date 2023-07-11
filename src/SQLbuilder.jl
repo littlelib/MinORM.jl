@@ -1,12 +1,20 @@
 ####Basic SQL statement builder
-const StmtObject=Tuple{String, Vector{Any}}
+@kwdef mutable struct StatementObject
+    statement::String=""
+    parameters::Vector{Any}=[]
+end
+
+struct FinalStatement
+    statement::String
+    parameters::Vector{Any}
+end
 
 mutable struct InfiniteRange
 end
 
 Base.iterate(inf_range::InfiniteRange, state=1)=(state, state+1)
 
-function prepared_statement_builder()
+function statementbuilder()
     parameters=[]
 
     function getparameter(param)
@@ -15,26 +23,30 @@ function prepared_statement_builder()
     end
 
     function buildstatement(statement)
-        return_stmt=(statement, parameters)|>deepcopy
+        return_stmt=StatementObject(statement, parameters)
         parameters=[]
         return return_stmt
     end
     
-    return (buildstatement, getparameter)
+    function neststatement(stmt::StatementObject)
+        append!(parameters, stmt.parameters)
+        return stmt.statement
+    end
+    return (buildstatement, getparameter, neststatement)
 end
 
 
 
-const (Sql, P)=prepared_statement_builder()
+const (Sql, P, N)=statementbuilder()
 
-function concat(stmt1::StmtObject, stmt2::StmtObject, delimeter::String=" ")
-    return (join([stmt1[1], stmt2[1]], delimeter), [stmt1[2];stmt2[2]])
+function concat(stmt1::StatementObject, stmt2::StatementObject, delimeter::String=" ")
+    return StatementObject(join([stmt1.statement, stmt2.statement], delimeter), [stmt1.parameters;stmt2.parameters])
 end
 
 
-function concat(x::Vector{T} where T<:StmtObject, delimeter::String=" ")
+function concat(x::Vector{T} where T<:StatementObject, delimeter::String=" ")
     if length(x)==0
-        return StmtObject[]
+        return StatementObject[]
     elseif length(x)==1
         return x[1]
     else
@@ -46,9 +58,19 @@ function concat(x::Vector{T} where T<:StmtObject, delimeter::String=" ")
 end
 
 
+
+
 """Must be used only right before execution/preparation, since this format is only Postgresql compatible, hence making combination with other formats error prone"""
-function renderto_postgresql(stmt_object::StmtObject)
-    stmt_sql=@pipe stmt_object[1]|>
+function render_sqlite(stmt::StatementObject)
+    return FinalStatement(stmt.statement*";", stmt.parameters)
+end
+
+function render_mysql(stmt::StatementObject)
+    return FinalStatement(stmt.statement*";", stmt.parameters)
+end
+
+function render_postgresql(stmt::StatementObject)
+    final_statement=@pipe stmt.statement|>
     split(_, "?")|>begin
         return_string=_[1]
         for i in 1:(length(_)-1)
@@ -56,7 +78,7 @@ function renderto_postgresql(stmt_object::StmtObject)
         end
         return_string
     end
-    return (stmt_sql, stmt_object[2])
+    return FinalStatement(final_statement*";", stmt.parameters)
 end
 
 ######################

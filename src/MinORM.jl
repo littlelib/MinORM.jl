@@ -4,8 +4,8 @@ using DataFrames, DotEnv, Pipe, SQLite, MySQL, LibPQ, Dates
 import Base
 
 
-include("./interface.jl")
+include("./Interface.jl")
 
-export DBManager, setup, close!, reconnect!, prepare, execute, create, drop, insert, select, delete, update, Schema, Sql, P, String_, primary, autoincrement, StmtObject, concat
+export DBManager, setup, close!, reconnect!, execute, create, drop, insert, select, delete, update, Schema, statementbuilder, Sql, P, N, StmtObject, concat, String_, primary, autoincrement
 
 end # module MinORM
