@@ -205,7 +205,7 @@ function update(manager::DBManager, instance::T where T<:Schema; where::Union{St
     execute(manager, stmt)
 end
 
-function update(manager::DBManager, schema::Type{T} where T<:Schema, sets::NTuple{N, Pair{Symbol, T}} where {N, T<:Any}; where::StatementObject)
+function update(manager::DBManager, schema::Type{T} where T<:Schema, sets::NTuple{N, Pair{Symbol, T}} where {N, T}; where::StatementObject)
     (Sql, P, N)=statementbuilder()
     schema_name=typeto_snakecase_name(schema)
     stmt_where=where
