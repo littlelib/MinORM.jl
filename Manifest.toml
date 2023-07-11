@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "f58df460bc15ff5b12c06ef68b14bf0becd54561"
+project_hash = "3e03651029b17ceff70aa969060d62ee7a27cfe3"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra", "Requires"]
@@ -136,6 +136,11 @@ version = "0.4.2"
 [[deps.Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
+
+[[deps.Grisu]]
+git-tree-sha1 = "53bb909d1151e57e2484c3d1b53e19552b887fb2"
+uuid = "42e2da0e-8278-4e71-bc24-59509adca0fe"
+version = "1.0.2"
 
 [[deps.Infinity]]
 deps = ["Dates", "Random", "Requires"]
