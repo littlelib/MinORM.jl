@@ -143,6 +143,9 @@ end
 
 
 
+
+
+
 function select(manager::DBManager, schema::Type{T} where T<:Schema, columns::NTuple{N, Symbol} where N; where::StatementObject=Sql("true"))
     (Sql, P, N)=statementbuilder()
     schema_name=typeto_snakecase_name(schema)
