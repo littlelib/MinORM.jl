@@ -1,4 +1,3 @@
-include("MinORM.jl")
 
 function insert(manager::DBManager, instances::Vector{T} where T<:Schema)
     (Sql, P, N)=statementbuilder()

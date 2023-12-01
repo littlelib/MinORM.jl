@@ -1,4 +1,3 @@
-include("./Connections.jl")
 include("./Objects.jl")
 include("./Kernel_functions.jl")
 include("./SQLbuilder.jl")
@@ -7,112 +6,90 @@ mutable struct DBManager{DBMS}
     connection
 end
 
-DBManager{:sqlite}()=DBManager{:sqlite}(connectfromenv_sqlite())
-DBManager{:mysql}()=DBManager{:mysql}(connectfromenv_mysql())
-DBManager{:postgresql}()=DBManager{:postgresql}(connectfromenv_postgresql())
+macro init()
+    quote
+        dbms=MinORM.getenv()
+        if dbms=="sqlite"
+            (@__MODULE__).eval(:(using Pkg; Pkg.add("SQLite");using SQLite))
+            MinORM.DBManager{:sqlite}()
+        elseif dbms=="mysql" || dbms=="mariadb"
+            (@__MODULE__).eval(:(using Pkg; Pkg.add("MySQL");using MySQL))
+            MinORM.DBManager{:mysql}()
+        elseif dbms=="postgresql"
+            (@__MODULE__).eval(:(using Pkg; Pkg.add("LibPQ");using LibPQ))
+            MinORM.DBManager{:postgresql}()
+        elseif dbms=="duckdb"
+            println("Not yet supported")
+        else
+            error("Unsupported DBMS type $dbms")
+        end
+    end
+end
 
-setup()=begin
+getenv()=begin
     cfg=DotEnv.config()
-    if cfg["DBMS"]=="sqlite"
-        return DBManager{:sqlite}()
-    elseif cfg["DBMS"]=="mysql" || cfg["DBMS"]=="mariadb"
-        return DBManager{:mysql}()
-    elseif cfg["DBMS"]=="postgresql"
-        return DBManager{:postgresql}()
-    end
+    return get(cfg, "DBMS", "UNDEFINED")
 end
 
-close!(manager::DBManager{:sqlite})=SQLite.DBInterface.close!(manager.connection)
-close!(manager::DBManager{:mysql})=MySQL.DBInterface.close!(manager.connection)
-close!(manager::DBManager{:postgresql})=close(manager.connection)
-
-reconnect!(manager::DBManager{:sqlite})=(close!(manager);manager.connection=connectfromenv_sqlite())
-reconnect!(manager::DBManager{:mysql})=(close!(manager);manager.connection=connectfromenv_mysql())
-reconnect!(manager::DBManager{:postgresql})=(close!(manager);manager.connection=connectfromenv_postgresql())
-
-prepare(manager::DBManager{:sqlite}, query_format::String)=SQLite.DBInterface.prepare(manager.connection, query_format)
-prepare(manager::DBManager{:mysql}, query_format::String)=MySQL.DBInterface.prepare(manager.connection, query_format)
-prepare(manager::DBManager{:postgresql}, query_format::String)=LibPQ.prepare(manager.connection, query_format)
-
-execute_core(stmt::SQLite.Stmt, params)=SQLite.DBInterface.execute(stmt, params)
-execute_core(manager::DBManager{:sqlite}, query::String)=SQLite.DBInterface.execute(manager.connection, query)
-
-execute_core(stmt::MySQL.Statement, params)=SQLite.DBInterface.execute(stmt, params)
-execute_core(manager::DBManager{:mysql}, query::String)=SQLite.DBInterface.execute(manager.connection, query)
-
-execute_core(stmt::LibPQ.Statement, params)=LibPQ.execute(stmt, params)
-execute_core(manager::DBManager{:postgresql}, query::String)=LibPQ.execute(manager.connection, query)
-
-function execute(manager::DBManager, stmt::StatementObject)
-    if isa(manager, DBManager{:sqlite})
-        final_statement=stmt|>render_sqlite
-        prepared_statement=prepare(manager, final_statement.statement)
-        result=execute_core(prepared_statement, final_statement.parameters)
-        (prepared_statement, result).|>SQLite.DBInterface.close!
-    elseif isa(manager, DBManager{:mysql})
-        final_statement=stmt|>render_mysql
-        prepared_statement=prepare(manager, final_statement.statement)
-        result=execute_core(prepared_statement, final_statement.parameters)
-        prepared_statement|>MySQL.DBInterface.close!
-    elseif isa(manager, DBManager{:postgresql})
-        final_statement=stmt|>render_postgresql
-        prepared_statement=prepare(manager, final_statement.statement)
-        result=execute_core(prepared_statement, final_statement.parameters)
-        result|>LibPQ.close
-    else
-        throw("Function not implemented for this type.")
-    end
+function close!(object)
+    DBInterface.close!(object)
 end
 
-function execute_withdf(manager::DBManager, stmt::StatementObject)
-    if isa(manager, DBManager{:sqlite})
-        final_statement=stmt|>render_sqlite
-        prepared_statement=prepare(manager, final_statement.statement)
-        result=execute_core(prepared_statement, final_statement.parameters)
-        df=result|>DataFrame
-        (prepared_statement, result).|>SQLite.DBInterface.close!
-        df
-    elseif isa(manager, DBManager{:mysql})
-        final_statement=stmt|>render_mysql
-        prepared_statement=prepare(manager, final_statement.statement)
-        result=execute_core(prepared_statement, final_statement.parameters)
-        df=result|>DataFrame
-        prepared_statement|>MySQL.DBInterface.close!
-        df
-    elseif isa(manager, DBManager{:postgresql})
-        final_statement=stmt|>render_postgresql
-        prepared_statement=prepare(manager, final_statement.statement)
-        result=execute_core(prepared_statement, final_statement.parameters)
-        df=result|>DataFrame
-        result|>LibPQ.close
-        df
-    else
-        throw("Function not implemented for this type.")
-    end
+function close!(cursor::DBInterface.Cursor)
+    DBInterface.close!(cursor)
+end
+
+function close!(manager::DBManager) 
+    DBInterface.close!(manager.connection)
 end
 
 
+function close!(manager::DBManager, statement) end
+function close!(manager::DBManager, statement::DBInterface.Statement)
+    DBInterface.close!(statement)
+end
+
+
+
+function prepare(manager::DBManager, query_format::String) 
+    DBInterface.prepare(manager.connection, query_format)
+end
+
+function execute_core(statement, params)
+    DBInterface.execute(statement, params)
+end
+
+function execute_core(manager::DBManager, query::String)
+    DBInterface.execute(manager.connection, query)
+end
+
+function render(manager::DBManager, statement::StatementObject) end
+
+function execute(manager::DBManager, statement::StatementObject)
+    final_statement=render(manager, statement)
+    prepared_statement=DBInterface.prepare(manager, final_statement.statement)
+    result=execute_core(prepared_statement, final_statement.parameters)
+    close!(manager, statement)
+    close!(result)
+end
+
+function execute_withdf(manager::DBManager, statement::StatementObject)
+    final_statement=render(manager, statement)
+    prepared_statement=DBInterface.prepare(manager, final_statement.statement)
+    result=execute_core(prepared_statement, final_statement.parameters)
+    df=result|>DataFrame
+    close!(manager, statement)
+    close!(result)
+    df
+end
 
 function create(manager::DBManager, schema::Type{T} where T<:Schema)
     (Sql, P, N)=statementbuilder()
     schema_name=typeto_snakecase_name(schema)
-    table_data=generate_intermediate_tabledata(schema)|>
-    x->begin
-        if isa(manager, DBManager{:sqlite})
-            x|>generate_final_tabledata_sqlite
-        elseif isa(manager, DBManager{:mysql})
-            x|>generate_final_tabledata_mysql
-        elseif isa(manager, DBManager{:postgresql})
-            x|>generate_final_tabledata_postgresql
-        else
-            throw("Function not implemented for this type.")
-        end
-    end
-    stmt=Sql("create table if not exists $(schema_name) ($table_data);")
+    tabledata=generate_tabledata(manager, schema)
+    stmt=Sql("create table if not exists $(schema_name) ($(table_data));")
     execute(manager, stmt)
 end
-
-
 
 function drop(manager::DBManager, schema::Type{T} where T<:Schema)
     (Sql, P, N)=statementbuilder()
@@ -120,8 +97,6 @@ function drop(manager::DBManager, schema::Type{T} where T<:Schema)
     stmt=Sql("drop table if exists $(schema_name);")
     execute(manager, stmt)
 end
-
-
 
 function insert(manager::DBManager, instance::T where T<:Schema)
     (Sql, P, N)=statementbuilder()
