@@ -9,6 +9,7 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DotEnv = "4dc1fcf4-5e3b-5448-94ab-0c38ec0385c1"
 Pipe = "b98c9c47-44ae-5843-9183-064241ee97a0"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [weakdeps]
 LibPQ = "194296ae-ab2e-5f79-8cd4-7183a0a5a0d1"

@@ -6,6 +6,7 @@ mutable struct DBManager{DBMS}
     connection
 end
 
+# Run only once, after 'using MinORM' or changing DBMS. You can just use 'connect()' to get the DBManager instance afterwards.
 macro init()
     quote
         dbms=MinORM.getenv()
@@ -47,7 +48,49 @@ function connect()
 end
 
 
-function setup() end
+function setup_prompt()
+    println("Select the DBMS you're about to use.\n 1) SQLite\n 2) MySQL / MariaDB\n 3) PostgreSQL\n 4) DuckDB")
+    dbms=readline()
+    if dbms=="1"
+        println("Select the type of DB you want.\n 1) In-memory (Press enter without typing anything beforehand)\n 2) File (Type the DB name)")
+        path=readline()
+        open(".env", "w") do x
+            write(x, "DBMS=sqlite\ndb_path=$path.sqlite")
+        end
+    elseif dbms=="2"
+        print("Host address: ")
+        address=readline()
+        print("Port(Optional. Skip if you want to use the default port, 3306): ")
+        port=readline()
+        print("User: ")
+        user=readline()
+        print("Password: ")
+        password=readline()
+        print("DB name: ")
+        db=readline()
+        open(".env", "w") do x
+            write(x, "DBMS=mysql\nhost=$host\n$(port=="" ? "" : "port=$port")\nuser=$user\npasswd=$password\ndb=$db")
+        end
+
+    elseif dbms=="3"
+        print("Host address: ")
+        address=readline()
+        print("Port(Optional. Skip if you want to use the default port, 5432): ")
+        port=readline()
+        print("User: ")
+        user=readline()
+        print("Password: ")
+        password=readline()
+        print("DB name: ")
+        db=readline()
+        open(".env", "w") do x
+            write(x, "DBMS=postgresql\nhost=$host\n$(port=="" ? "" : "port=$port")\nuser=$user\npasswd=$password\ndb=$db")
+        end
+    elseif dbms=="4"
+    else
+        println("Unsupported DBMS type. Choose among 1~4.")
+    end
+end
 
 
 function close!(object)
