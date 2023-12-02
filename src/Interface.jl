@@ -133,8 +133,9 @@ function execute(manager::DBManager, statement::StatementObject)
     final_statement=render(manager, statement)
     prepared_statement=prepare(manager, final_statement.statement)
     result=execute_core(prepared_statement, final_statement.parameters)
-    close!(manager, statement)
+    close!(manager, prepared_statement)
     close!(manager, result)
+    nothing
 end
 
 function execute_withdf(manager::DBManager, statement::StatementObject)
