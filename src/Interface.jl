@@ -11,13 +11,13 @@ macro init()
     quote
         dbms=MinORM.getenv()
         if dbms=="sqlite"
-            (@__MODULE__).eval(:(using Pkg; Pkg.add("SQLite");using SQLite))
+            (@__MODULE__).eval(:(using Pkg; Pkg.add("SQLite");import SQLite))
             MinORM.DBManager{:sqlite}()
         elseif dbms=="mysql" || dbms=="mariadb"
-            (@__MODULE__).eval(:(using Pkg; Pkg.add("MySQL");using MySQL))
+            (@__MODULE__).eval(:(using Pkg; Pkg.add("MySQL");import MySQL))
             MinORM.DBManager{:mysql}()
         elseif dbms=="postgresql"
-            (@__MODULE__).eval(:(using Pkg; Pkg.add("LibPQ");using LibPQ))
+            (@__MODULE__).eval(:(using Pkg; Pkg.add("LibPQ");import LibPQ))
             MinORM.DBManager{:postgresql}()
         elseif dbms=="duckdb"
             println("Not yet supported")
@@ -57,6 +57,7 @@ function setup_prompt()
         open(".env", "w") do x
             write(x, "DBMS=sqlite\ndb_path=$path.sqlite")
         end
+        nothing
     elseif dbms=="2"
         print("Host address: ")
         address=readline()
@@ -71,7 +72,7 @@ function setup_prompt()
         open(".env", "w") do x
             write(x, "DBMS=mysql\nhost=$address\n$(port=="" ? "" : "port=$port\n")user=$user\npasswd=$password\ndb=$db")
         end
-
+        nothing
     elseif dbms=="3"
         print("Host address: ")
         address=readline()
@@ -86,6 +87,7 @@ function setup_prompt()
         open(".env", "w") do x
             write(x, "DBMS=postgresql\nhost=$address\n$(port=="" ? "" : "port=$port\n")user=$user\npasswd=$password\ndb=$db")
         end
+        nothing
     elseif dbms=="4"
     else
         println("Unsupported DBMS type. Choose among 1~4.")
@@ -132,7 +134,7 @@ function execute(manager::DBManager, statement::StatementObject)
     prepared_statement=prepare(manager, final_statement.statement)
     result=execute_core(prepared_statement, final_statement.parameters)
     close!(manager, statement)
-    close!(result)
+    close!(manager, result)
 end
 
 function execute_withdf(manager::DBManager, statement::StatementObject)
@@ -141,7 +143,7 @@ function execute_withdf(manager::DBManager, statement::StatementObject)
     result=execute_core(prepared_statement, final_statement.parameters)
     df=result|>DataFrame
     close!(manager, statement)
-    close!(result)
+    close!(manager, result)
     df
 end
 
