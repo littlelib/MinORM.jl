@@ -69,7 +69,7 @@ function setup_prompt()
         print("DB name: ")
         db=readline()
         open(".env", "w") do x
-            write(x, "DBMS=mysql\nhost=$host\n$(port=="" ? "" : "port=$port")\nuser=$user\npasswd=$password\ndb=$db")
+            write(x, "DBMS=mysql\nhost=$address\n$(port=="" ? "" : "port=$port")\nuser=$user\npasswd=$password\ndb=$db")
         end
 
     elseif dbms=="3"
@@ -84,7 +84,7 @@ function setup_prompt()
         print("DB name: ")
         db=readline()
         open(".env", "w") do x
-            write(x, "DBMS=postgresql\nhost=$host\n$(port=="" ? "" : "port=$port")\nuser=$user\npasswd=$password\ndb=$db")
+            write(x, "DBMS=postgresql\nhost=$address\n$(port=="" ? "" : "port=$port")\nuser=$user\npasswd=$password\ndb=$db")
         end
     elseif dbms=="4"
     else
