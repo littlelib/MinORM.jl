@@ -1,5 +1,5 @@
 module MinORM_MySQL
-using MinORM, DotEnv, MySQL
+using MinORM, DotEnv, MySQL, Pipe
 import MinORM
 
 """.env file must include HOST, USER, PASSWD. Others are optional."""

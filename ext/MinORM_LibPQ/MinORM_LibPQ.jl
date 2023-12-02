@@ -1,5 +1,5 @@
 module MinORM_LibPQ
-using MinORM, DotEnv, LibPQ
+using MinORM, DotEnv, LibPQ, Pipe
 import MinORM
 
 function connectfromenv_postgresql()
