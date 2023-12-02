@@ -31,6 +31,25 @@ getenv()=begin
     return get(cfg, "DBMS", "UNDEFINED")
 end
 
+function connect()
+    dbms=getenv()
+    if dbms=="sqlite"
+        MinORM.DBManager{:sqlite}()
+    elseif dbms=="mysql" || dbms=="mariadb"
+        MinORM.DBManager{:mysql}()
+    elseif dbms=="postgresql"
+        MinORM.DBManager{:postgresql}()
+    elseif dbms=="duckdb"
+        println("Not yet supported")
+    else
+        error("Unsupported DBMS type $dbms")
+    end
+end
+
+
+function setup() end
+
+
 function close!(object)
     DBInterface.close!(object)
 end
@@ -67,7 +86,7 @@ function render(manager::DBManager, statement::StatementObject) end
 
 function execute(manager::DBManager, statement::StatementObject)
     final_statement=render(manager, statement)
-    prepared_statement=DBInterface.prepare(manager, final_statement.statement)
+    prepared_statement=prepare(manager, final_statement.statement)
     result=execute_core(prepared_statement, final_statement.parameters)
     close!(manager, statement)
     close!(result)
@@ -75,7 +94,7 @@ end
 
 function execute_withdf(manager::DBManager, statement::StatementObject)
     final_statement=render(manager, statement)
-    prepared_statement=DBInterface.prepare(manager, final_statement.statement)
+    prepared_statement=prepare(manager, final_statement.statement)
     result=execute_core(prepared_statement, final_statement.parameters)
     df=result|>DataFrame
     close!(manager, statement)
