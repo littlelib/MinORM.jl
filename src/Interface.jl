@@ -152,9 +152,18 @@ function create(manager::DBManager, schema::Type{T} where T<:Schema)
     (Sql, P, N)=statementbuilder()
     schema_name=typeto_snakecase_name(schema)
     tabledata=generate_tabledata(manager, schema)
+    stmt=Sql("create table $(schema_name) ($(tabledata));")
+    execute(manager, stmt)
+end
+
+function create_withouterr(manager::DBManager, schema::Type{T} where T<:Schema)
+    (Sql, P, N)=statementbuilder()
+    schema_name=typeto_snakecase_name(schema)
+    tabledata=generate_tabledata(manager, schema)
     stmt=Sql("create table if not exists $(schema_name) ($(tabledata));")
     execute(manager, stmt)
 end
+
 
 function drop(manager::DBManager, schema::Type{T} where T<:Schema)
     (Sql, P, N)=statementbuilder()
