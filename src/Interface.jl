@@ -14,7 +14,7 @@ macro init()
             (@__MODULE__).eval(:(using Pkg; Pkg.add("SQLite");import SQLite))
             MinORM.DBManager{:sqlite}()
         elseif dbms=="mysql" || dbms=="mariadb"
-            (@__MODULE__).eval(:(using Pkg; Pkg.add("https://github.com/littlelib/MySQL.jl.Temp.git");import MySQL))
+            (@__MODULE__).eval(:(using Pkg; Pkg.add(url="https://github.com/littlelib/MySQL.jl.Temp.git", rev="devel");import MySQL))
             MinORM.DBManager{:mysql}()
         elseif dbms=="postgresql"
             (@__MODULE__).eval(:(using Pkg; Pkg.add("LibPQ");import LibPQ))
